@@ -16,11 +16,17 @@
     "@babylonjs/core": "^5.42.2",
     "@babylonjs/gui": "^5.42.2",
     "@babylonjs/inspector": "^5.42.2",
-    "@babylonjs/loaders": "^5.42.2"
+    "@babylonjs/loaders": "^5.42.2",
+    "babylonjs-charactercontroller": "file:../babylonjs-charactercontroller"
   },
   "devDependencies": {
     "ts-standard": "^12.0.2",
     "typescript": "^4.9.3",
     "vite": "^4.0.4"
+  },
+  "ts-standard": {
+    "ignore": [
+      "src/libs/**"
+    ]
   }
 }

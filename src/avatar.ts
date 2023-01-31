@@ -1,4 +1,4 @@
-import { Scene, SceneLoader, TransformNode } from '@babylonjs/core'
+import { Scene, TransformNode } from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
 import * as GUI from '@babylonjs/gui'
 
@@ -12,18 +12,17 @@ interface ReadyPlayerMeResponse {
 }
 
 export class Avatar {
-  hasLoaded: boolean = false
   scene: Scene
+  url: string | null = null
+  hasLoaded: Function = () => {}
+  waitForRPM: Promise<string>
   buttonAnchor: TransformNode | null = null
 
   constructor (scene: Scene) {
     this.scene = scene
-    const url = localStorage.getItem('avatar')
-    if (url !== null) {
-      this.load(url)
-    } else {
-      this.showButton()
-    }
+    this.waitForRPM = new Promise((resolve) => {
+      this.hasLoaded = resolve
+    })
   }
 
   showIframe (): void {
@@ -66,7 +65,10 @@ export class Avatar {
 
     // Get avatar GLB URL
     if (json.eventName === 'v1.avatar.exported') {
-      this.load(json.data.url)
+      this.save(json.data.url)
+      this.hideIframe()
+      this.hideButton()
+      this.hasLoaded(json.data.url)
     }
 
     // Get user id
@@ -103,13 +105,19 @@ export class Avatar {
     this.buttonAnchor.setEnabled(false)
   }
 
-  load (url: string): void {
-    SceneLoader.Append(url, '', this.scene, () => {
-      localStorage.setItem('avatar', url)
-      this.hasLoaded = true
-      this.hideIframe()
-      this.hideButton()
-    })
+  save (url: string): void {
+    localStorage.setItem('avatar', url)
+  }
+
+  async load (): Promise<string> {
+    const url = localStorage.getItem('avatar')
+    if (url !== null) {
+      this.save(url)
+      this.hasLoaded(url)
+    } else {
+      this.showButton()
+    }
+    return await this.waitForRPM
   }
 }
 

@@ -1,6 +1,7 @@
-import { Scene, TransformNode } from '@babylonjs/core'
+import { AnimationGroup, TransformNode, Vector3, ArcRotateCamera } from '@babylonjs/core'
 import '@babylonjs/loaders/glTF'
 import * as GUI from '@babylonjs/gui'
+import { App } from './app'
 
 interface ReadyPlayerMeResponse {
   source: string
@@ -11,15 +12,19 @@ interface ReadyPlayerMeResponse {
   }
 }
 
+interface AnimationGroupObject {
+  [key: string]: AnimationGroup
+}
+
 export class Avatar {
-  scene: Scene
+  app: App
   url: string | null = null
   hasLoaded: Function = () => {}
   waitForRPM: Promise<string>
   buttonAnchor: TransformNode | null = null
 
-  constructor (scene: Scene) {
-    this.scene = scene
+  constructor (app: App) {
+    this.app = app
     this.waitForRPM = new Promise((resolve) => {
       this.hasLoaded = resolve
     })
@@ -82,9 +87,11 @@ export class Avatar {
       this.buttonAnchor.setEnabled(true)
       return
     }
+    const camera = new ArcRotateCamera('Camera', Math.PI / 2, Math.PI / 2.5, 5, new Vector3(0, 1, 0), this.app.scene)
+    camera.attachControl(this.app.canvas, true)
 
     const anchor = new TransformNode('anchor')
-    const manager = new GUI.GUI3DManager(this.scene)
+    const manager = new GUI.GUI3DManager(this.app.scene)
     const button = new GUI.HolographicButton('ReadyPlayerMe')
     manager.addControl(button)
     button.linkToTransformNode(anchor)
@@ -96,6 +103,12 @@ export class Avatar {
     button.text = 'Load Avatar'
     button.onPointerClickObservable.add(() => {
       this.showIframe()
+    })
+    button.onPointerEnterObservable.add(() => {
+      document.body.style.cursor = 'pointer'
+    })
+    button.onPointerOutObservable.add(() => {
+      document.body.style.cursor = ''
     })
     this.buttonAnchor = anchor
   }
@@ -118,6 +131,23 @@ export class Avatar {
       this.showButton()
     }
     return await this.waitForRPM
+  }
+
+  // Creates AnimationGroup objects
+  createAnimationGroups (aG: AnimationGroup[]): AnimationGroupObject {
+    console.log(aG)
+    return {
+      fall: aG[0],
+      idle: aG[1],
+      idleJump: aG[2],
+      run: aG[3],
+      runJump: aG[4],
+      strafeLeft: aG[5],
+      strafeRight: aG[6],
+      walk: aG[7],
+      walkBack: aG[8],
+      walkBackFast: aG[9]
+    }
   }
 }
 

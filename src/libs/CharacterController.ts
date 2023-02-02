@@ -285,7 +285,7 @@ import {
   
     }
   
-    private _setAnim(anim: ActionData, animName?: string | AnimationGroup, rate?: number, loop?: boolean) {
+    private _setAnim(anim: ActionData, animName?: string | AnimationGroup | null | null, rate?: number, loop?: boolean) {
   
         //animation range need skeleton
         if (!this._isAG && this._skeleton == null) return;
@@ -347,60 +347,60 @@ import {
     }
   
     //setters for animations
-    public setWalkAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setWalkAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.walk, rangeName, rate, loop);
     }
-    public setRunAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setRunAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.run, rangeName, rate, loop);
     }
-    public setWalkBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setWalkBackAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.walkBack, rangeName, rate, loop);
         this._copySlowAnims(this._actionMap.walkBackFast, this._actionMap.walkBack);
     }
-    public setWalkBackFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setWalkBackFastAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.walkBackFast, rangeName, rate, loop);
     }
-    public setSlideBackAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setSlideBackAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.slideBack, rangeName, rate, loop);
     }
-    public setIdleAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setIdleAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.idle, rangeName, rate, loop);
     }
-    public setTurnRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setTurnRightAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.turnRight, rangeName, rate, loop);
         this._copySlowAnims(this._actionMap.turnRightFast, this._actionMap.turnRight);
     }
-    public setTurnRightFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setTurnRightFastAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.turnRightFast, rangeName, rate, loop);
     }
-    public setTurnLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setTurnLeftAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.turnLeft, rangeName, rate, loop);
         this._copySlowAnims(this._actionMap.turnLeftFast, this._actionMap.turnLeft);
     }
-    public setTurnLeftFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setTurnLeftFastAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.turnLeftFast, rangeName, rate, loop);
     }
-    public setStrafeRightAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setStrafeRightAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.strafeRight, rangeName, rate, loop);
         this._copySlowAnims(this._actionMap.strafeRightFast, this._actionMap.strafeRight);
     }
-    public setStrafeRightFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setStrafeRightFastAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.strafeRightFast, rangeName, rate, loop);
     }
-    public setStrafeLeftAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setStrafeLeftAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.strafeLeft, rangeName, rate, loop);
         this._copySlowAnims(this._actionMap.strafeLeftFast, this._actionMap.strafeLeft);
     }
-    public setStrafeLeftFastAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setStrafeLeftFastAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.strafeLeftFast, rangeName, rate, loop);
     }
-    public setIdleJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setIdleJumpAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.idleJump, rangeName, rate, loop);
     }
-    public setRunJumpAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setRunJumpAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.runJump, rangeName, rate, loop);
     }
-    public setFallAnim(rangeName: string | AnimationGroup, rate: number, loop: boolean) {
+    public setFallAnim(rangeName: string | AnimationGroup | null, rate: number, loop: boolean) {
         this._setAnim(this._actionMap.fall, rangeName, rate, loop);
     }
   
@@ -1289,6 +1289,7 @@ import {
             }
             return false;
         });
+        this._scene.onBeforeRenderObservable.add(this._skeletonPrepare)
     }
 
     private _visiblityMap: Map<Mesh, int> = new Map();
@@ -1302,6 +1303,12 @@ import {
             }
             return false;
         });
+        this._scene.onBeforeRenderObservable.removeCallback(this._skeletonPrepare)
+    }
+
+    // Keeps running skeleton animations even when the mesh is invisible
+    private _skeletonPrepare() {
+        this._skeleton?.prepare()
     }
 
     private _ray: Ray = new Ray(Vector3.Zero(), Vector3.One(), 1);
@@ -1757,6 +1764,7 @@ import {
         this._renderer = () => { this._moveAVandCamera() };
         this._handleKeyUp = (e) => { this._onKeyUp(e) };
         this._handleKeyDown = (e) => { this._onKeyDown(e) };
+        this._skeletonPrepare = this._skeletonPrepare.bind(this)
     }
   }
   

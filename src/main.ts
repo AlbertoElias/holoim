@@ -1,4 +1,4 @@
-import { SceneLoader, Vector3, ArcRotateCamera, Mesh, AbstractMesh, MeshBuilder, Plane, StandardMaterial, MirrorTexture, Scene, FreeCamera } from '@babylonjs/core'
+import { SceneLoader, Vector3, ArcRotateCamera, Mesh, AbstractMesh, MeshBuilder, Plane, StandardMaterial, MirrorTexture, Scene, SceneLoaderAnimationGroupLoadingMode } from '@babylonjs/core'
 import { CharacterController } from './libs/CharacterController'
 
 import './style.css'
@@ -9,28 +9,31 @@ import { XR } from './xr'
 window.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('renderCanvas') as HTMLCanvasElement
   const app = new App(canvas)
+  app.run()
   const xr = new XR()
   xr.setUp(app.scene)
     .catch(console.log)
 
-  const avatar = new Avatar(app.scene)
+  const avatar = new Avatar(app)
   avatar.load()
     .then((url) => {
       console.log(url)
       SceneLoader.ImportMeshAsync(null, url, '', app.scene)
-        .then((res) => {
-          const avatar = res.meshes[0]
+        .then(async ({ meshes }) => {
+          const avatar = meshes[0]
           avatar.checkCollisions = true
           avatar.ellipsoid = new Vector3(0.5, 1, 0.5)
           avatar.ellipsoidOffset = new Vector3(0, 1, 0)
-          createMirror(res.meshes[1], app.scene)
+          createMirror(meshes[1], app.scene)
 
           if (avatar.rotationQuaternion !== null) {
             avatar.rotation = avatar.rotationQuaternion.toEulerAngles()
             avatar.rotationQuaternion = null
           }
 
-          return avatar
+          // Loads the animation groups
+          return await SceneLoader.ImportAnimationsAsync('/public/', 'avatar.glb', app.scene, false, SceneLoaderAnimationGroupLoadingMode.Clean, null)
+            .then(() => avatar)
         })
         .then((mesh) => {
           const alpha = Math.PI / 2 + mesh.rotation.y
@@ -48,15 +51,16 @@ window.addEventListener('DOMContentLoaded', () => {
           camera.attachControl(canvas, false)
           app.scene.activeCameras?.push(camera)
 
-          const cc = new CharacterController(mesh as Mesh, camera, app.scene, undefined, true)
+          const cc = new CharacterController(mesh as Mesh, camera, app.scene, avatar.createAnimationGroups(app.scene.animationGroups), true)
           cc.setNoFirstPerson(false)
           cc.setMode(0)
           cc.setTurningOff(true)
           cc.setCameraTarget(new Vector3(0, 1.7, 0))
           cc.setStepOffset(0.4)
           cc.setSlopeLimit(30, 60)
+          cc.setIdleJumpAnim(null, 0.74, false)
+          cc.setRunJumpAnim(null, 0.48, false)
           cc.start()
-          app.run()
         })
         .catch(console.log)
     })

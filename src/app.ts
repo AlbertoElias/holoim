@@ -39,6 +39,7 @@ function createScene (engine: Engine): Scene {
   // This creates a basic Babylon Scene object (non-mesh)
   const scene = new Scene(engine)
   scene.ambientColor = new Color3(0.9, 0.4, 0.2)
+  scene.hoverCursor = 'pointer'
 
   // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
   const light: HemisphericLight = new HemisphericLight('light', new Vector3(0, 10, -5), scene)

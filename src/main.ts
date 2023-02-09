@@ -41,7 +41,7 @@ window.addEventListener('DOMContentLoaded', () => {
           }
 
           // Loads the animation groups
-          return await SceneLoader.ImportAnimationsAsync('/public/', 'avatar.glb', app.scene, false, SceneLoaderAnimationGroupLoadingMode.Clean, null)
+          return await SceneLoader.ImportAnimationsAsync('/', 'avatar.glb', app.scene, false, SceneLoaderAnimationGroupLoadingMode.Clean, null)
             .then(() => avatar)
         })
         .then((mesh) => {

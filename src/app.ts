@@ -56,7 +56,7 @@ function createScene (engine: Engine, canvas: HTMLCanvasElement): Scene {
   // ground.receiveShadows = true
   // ground.checkCollisions = true
 
-  SceneLoader.ImportMesh('', '/public/', 'room.glb', scene, (meshes) => {
+  SceneLoader.ImportMesh('', '/', 'room.glb', scene, (meshes) => {
     const room = new TransformNode('room')
     // Add collisisions and shadows to all meshes
     meshes.forEach((mesh) => {
@@ -70,7 +70,7 @@ function createScene (engine: Engine, canvas: HTMLCanvasElement): Scene {
     }
   })
 
-  // SceneLoader.ImportMesh('', '/public/', 'low_poly_forest.glb', scene, (meshes) => {
+  // SceneLoader.ImportMesh('', '/', 'low_poly_forest.glb', scene, (meshes) => {
   //   const forest = new TransformNode('forest')
   //   // Add collisisions and shadows to all meshes
   //   meshes.forEach((mesh) => {

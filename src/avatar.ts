@@ -87,8 +87,6 @@ export class Avatar {
       this.buttonAnchor.setEnabled(true)
       return
     }
-    const camera = new ArcRotateCamera('Camera', Math.PI / 2, Math.PI / 2.5, 5, new Vector3(0, 1, 0), this.app.scene)
-    camera.attachControl(this.app.canvas, true)
 
     const anchor = new TransformNode('anchor')
     const manager = new GUI.GUI3DManager(this.app.scene)

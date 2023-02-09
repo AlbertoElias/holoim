@@ -872,6 +872,8 @@ import {
                         this._endJump();
                     }
                 } else {
+                    //AV is in freefall
+                    this._inFreeFall = true;
                     actData = this._actionMap.fall;
                 }
             }
@@ -932,6 +934,13 @@ import {
         if (this._inFreeFall) {
             this._moveVector.y = -this._freeFallDist;
             moving = true;
+        }
+
+        // If the avatar is falling for a long time, teleport it to the ground
+        if (this._movFallTime > 3) {
+            this._endFreeFall()
+            this._avatar.position = this._initialPosition
+            return this._actionMap.idle
         }
   
   
@@ -1652,11 +1661,13 @@ import {
         return this._root(tn.parent);
     }
   
+    private _initialPosition: Vector3 = Vector3.Zero();
     public setAvatar(avatar: Mesh, faceForward: boolean = false): boolean {
   
         let rootNode = this._root(avatar);
         if (rootNode instanceof Mesh) {
             this._avatar = rootNode;
+            this._initialPosition = this._avatar.position.clone();
         } else {
             console.error("Cannot move this mesh. The root node of the mesh provided is not a mesh");
             return false;

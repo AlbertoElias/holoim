@@ -1,5 +1,4 @@
-import { AnimationGroup, TransformNode, Vector3, ArcRotateCamera } from '@babylonjs/core'
-import '@babylonjs/loaders/glTF'
+import { AnimationGroup, TransformNode } from '@babylonjs/core'
 import * as GUI from '@babylonjs/gui'
 import { App } from './app'
 
@@ -95,9 +94,6 @@ export class Avatar {
     button.linkToTransformNode(anchor)
     button.position.z = 1.5
     button.position.y = 1
-    if (button.node !== null) {
-      button.node.rotation.y = Math.PI
-    }
     button.text = 'Load Avatar'
     button.onPointerClickObservable.add(() => {
       this.showIframe()
@@ -133,7 +129,6 @@ export class Avatar {
 
   // Creates AnimationGroup objects
   createAnimationGroups (aG: AnimationGroup[]): AnimationGroupObject {
-    console.log(aG)
     return {
       fall: aG[0],
       idle: aG[1],

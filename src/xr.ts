@@ -1,16 +1,27 @@
-import { Scene } from '@babylonjs/core'
+import { Scene, WebXRDefaultExperience, WebXRAbstractMotionController } from '@babylonjs/core'
 
 export class XR {
-  async setUp (scene: Scene): Promise<T> {
-    const ground = scene.getMeshByName('ground')
-    if (ground == null) return
-    const xr = await scene.createDefaultXRExperienceAsync({
-      floorMeshes: [ground]
+  controllers: WebXRAbstractMotionController[] = []
+  xrHelper?: WebXRDefaultExperience
+
+  async setUp (scene: Scene): Promise<WebXRDefaultExperience | undefined> {
+    // const ground = scene.getMeshByName('ground')
+    const ground = scene.getMeshByName('Object_5')
+    const groundReflections = scene.getMeshByName('Object_4')
+    // const floorMeshes = [ground, groundReflections]
+    if (ground === null || groundReflections === null) return
+    const xrHelper = await scene.createDefaultXRExperienceAsync({
+      floorMeshes: [ground, groundReflections]
     })
-    xr.input.onControllerAddedObservable.add((controller) => {
+    console.log(xrHelper)
+    xrHelper.input.onControllerAddedObservable.add((controller) => {
       controller.onMotionControllerInitObservable.add((motionController) => {
+        this.controllers.push(motionController)
+        console.log(controller)
         console.log(motionController)
       })
     })
+    this.xrHelper = xrHelper
+    return xrHelper
   }
 }

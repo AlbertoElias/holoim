@@ -15,15 +15,28 @@ import {
     AbstractMesh,
     Sound,
     Animatable,
-    int
-  } from "@babylonjs/core";
+    int,
+    Camera,
+    WebXRCamera,
+    Quaternion
+} from "@babylonjs/core";
+
+enum WOLF3DHEADPARTS {
+    EyeLeft = "EyeLeft",
+    EyeRight = "EyeRight",
+    Wolf3D_Head = "Wolf3D_Head",
+    Wolf3D_Hair = "Wolf3D_Hair",
+    Wolf3D_Teeth = "Wolf3D_Teeth",
+    Wolf3D_Headwear = "Wolf3D_Headwear",
+    Wolf3D_Beard = "Wolf3D_Beard",
+    Wolf3D_Glasses = "Wolf3D_Glasses"
+}
   
-  
-  export class CharacterController {
-  
+export class CharacterController {
     private _avatar: Mesh | null = null
     private _skeleton: Skeleton | null = null
     private _camera: ArcRotateCamera;
+    private _xrCamera: WebXRCamera;
     private _scene: Scene;
     public getScene(): Scene {
         return this._scene;
@@ -623,18 +636,6 @@ import {
         return this._ff;
     }
   
-    private checkAGs(agMap: {}) {
-        let keys: string[] = Object.keys(this._actionMap);
-        for (let key of keys) {
-            let anim = this._actionMap[key];
-            if (!(anim instanceof ActionData)) continue;
-            if (agMap[anim.name] != null) {
-                anim.ag = agMap[anim.name];
-                anim.exist = true;
-            }
-        }
-    }
-  
     // check if any of the mesh on the node tree is refrenced by any animation group
     private _containsAG(node: Node, ags: AnimationGroup[], fromRoot: boolean) {
         let r: Node;
@@ -700,19 +701,15 @@ import {
         if (this._prevActData != null && this._prevActData.exist) {
             //stop current animation
             if (this._isAG) {
-                this._prevActData.ag.stop();
+                this._prevActData.ag.pause();
             } else {
-                //this._scene.stopAnimation(this._skeleton, this._prevActData.name);
                 this._scene.stopAnimation(this._skeleton);
-                //this._scene.stopAllAnimations();
             }
             //stop current sound
             if (this._prevActData.sound != null) {
                 this._prevActData.sound.stop();
             }
             clearInterval(this._sndId);
-  
-            this._scene.unregisterBeforeRender(this._renderer);
         }
     }
   
@@ -724,7 +721,6 @@ import {
     public resumeAnim() {
         this._stopAnim = false;
         this._prevActData = null;
-        this._scene.registerBeforeRender(this._renderer);
     }
   
     private _prevActData: ActionData = null;
@@ -1257,7 +1253,7 @@ import {
     private _inFP = false;
     private _updateTargetValue() {
         if (!this._hasCam) return;
-        //donot move camera if av is trying to clinb steps
+        //donot move camera if av is trying to climb steps
         if (this._vMoveTot == 0) {
             this._avatar.position.addToRef(this._cameraTarget, this._camera.target);
         }
@@ -1265,13 +1261,9 @@ import {
         if (this._camera.radius > this._camera.lowerRadiusLimit) { if (this._cameraElastic || this._makeInvisible) this._handleObstruction(); }
 
         //if user so desire, make the AV invisible if camera comes close to it
-        if (this._camera.radius <= this._camera.lowerRadiusLimit) {
+        if (this._camera.radius <= this._camera.lowerRadiusLimit || this._isInXR) {
             if (!this._noFirstPerson && !this._inFP) {
-                this._makeMeshInvisible(this._avatar);
-                this._camera.checkCollisions = false;
-                this._saveMode = this._mode;
-                this._mode = 0;
-                this._inFP = true;
+                this.goFirstPerson();
             }
         } else {
             if (this._inFP) {
@@ -1283,18 +1275,30 @@ import {
         }
     }
 
+    // Go into first person
+    public goFirstPerson() {
+        this._makeMeshInvisible(this._avatar);
+        this._camera.checkCollisions = false;
+        this._saveMode = this._mode;
+        this._mode = 0;
+        this._inFP = true;
+    }
+
     // make mesh and all its children invisible
     // store their current visibility state so that we can restore them later on
     private _makeMeshInvisible(mesh: Mesh) {
-
-        this._visiblityMap.set(mesh, mesh.layerMask);
-        // Use layerMask to make mesh invisible so MirrorTexture can still see it
-        mesh.layerMask = 0;
+        if (!this._isInXR) {
+            this._visiblityMap.set(mesh, mesh.layerMask);
+            // Use layerMask to make mesh invisible so MirrorTexture can still see it
+            mesh.layerMask = 0;
+        }
 
         mesh.getChildMeshes(false, (n) => {
             if (n instanceof Mesh) {
-                this._visiblityMap.set(n, n.layerMask);
-                n.layerMask = 0;
+                if (!this._isInXR || Object.values(WOLF3DHEADPARTS).includes(n.name)) {
+                    this._visiblityMap.set(n, n.layerMask);
+                    n.layerMask = 0;
+                }
             }
             return false;
         });
@@ -1305,10 +1309,14 @@ import {
 
     //restore mesh visibility to previous state
     private _restoreVisiblity(mesh: Mesh) {
-        mesh.layerMask = this._visiblityMap.get(mesh);
+        if (!this._isInXR) {
+            mesh.layerMask = this._visiblityMap.get(mesh);
+        }
         mesh.getChildMeshes(false, (n) => {
             if (n instanceof Mesh) {
-                n.layerMask = this._visiblityMap.get(n);
+                if (!this._isInXR || Object.values(WOLF3DHEADPARTS).includes(n.name)) {
+                    n.layerMask = this._visiblityMap.get(n);
+                }
             }
             return false;
         });
@@ -1329,7 +1337,6 @@ import {
     private _pickedMeshes: AbstractMesh[] = new Array();;
     private _makeInvisible = false;
     private _elasticSteps = 50;
-    private _alreadyInvisible: AbstractMesh[];
   
     /**
      * The following method handles the use case wherein some mesh
@@ -1630,9 +1637,21 @@ import {
     public isAg() {
         return this._isAG;
     }
-  
-  
-  
+
+    // Updates avatar and skeleton position and rotation based on the WebXRCamera
+    private _updateAvatarInVR() {
+        this._avatar?.position.set(this._xrCamera.position.x, this._xrCamera.position.y - this._xrCamera.realWorldHeight, this._xrCamera.position.z)
+        const cameraRotation = this._xrCamera.rotationQuaternion.toEulerAngles();
+        this._avatar.rotation.y = (cameraRotation.y > 0.001 ? cameraRotation.y : 0) + Math.PI;
+        const headIndex = this._skeleton?.getBoneIndexByName("Head")
+        if (headIndex) {
+            const head = this._skeleton.bones[headIndex].getTransformNode() ?
+                this._skeleton.bones[headIndex].getTransformNode() :
+                this._skeleton.bones[headIndex];
+            const newRotation = Quaternion.FromEulerAngles(cameraRotation.x, head.rotation.y, -cameraRotation.z)
+            head.rotationQuaternion = newRotation
+        }
+    }
   
     private _findSkel(n: Node): Skeleton {
         let root = this._root(n);
@@ -1716,6 +1735,11 @@ import {
     // remember we can use meshes without anims as characters too
     private _hasAnims: boolean = false;
     private _hasCam: boolean = true;
+
+    private _isInXR: boolean = false;
+    public setIsInXR(b: boolean) {
+        this._isInXR = b;
+    }
   
     /**
      * The avatar/character can be made up of multiple meshes arranged in a hierarchy.
@@ -1736,9 +1760,12 @@ import {
      *        for backward compatibility could be AnimationGroup Map
      * @param faceForward 
      */
-    constructor(avatar: Mesh, camera: ArcRotateCamera, scene: Scene, actionMap?: {}, faceForward = false) {
+    constructor(avatar: Mesh, camera: Camera[], scene: Scene, actionMap?: {}, faceForward = false) {
   
-        this._camera = camera;
+        this._camera = camera[0] as ArcRotateCamera;
+        this._xrCamera = camera[1] as WebXRCamera;
+        window.cam = this._xrCamera
+        console.log(this._xrCamera)
   
         //if camera is null assume this would be used to control an NPC
         //we cannot use mode 0 as that is dependent on camera being present. so force mode 1
@@ -1763,16 +1790,18 @@ import {
   
         //animation ranges
         if (!this._isAG && this._skeleton != null) this._checkAnimRanges(this._skeleton);
-        //animation groups
-        if (this._isAG) {
-            //TODO
-        }
   
         if (this._hasCam) this._savedCameraCollision = this._camera.checkCollisions;
   
         this._act = new _Action();
   
-        this._renderer = () => { this._moveAVandCamera() };
+        this._renderer = () => {
+            if (this._isInXR) {
+                this._updateAvatarInVR();
+            } else {
+                this._moveAVandCamera()
+            }
+        };
         this._handleKeyUp = (e) => { this._onKeyUp(e) };
         this._handleKeyDown = (e) => { this._onKeyDown(e) };
         this._skeletonPrepare = this._skeletonPrepare.bind(this)
